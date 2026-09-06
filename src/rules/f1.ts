@@ -1,3 +1,4 @@
+
 /**
  * F-1 rules engine.
  * Pure date math. No React, no UI, no imports from the app.
@@ -50,7 +51,19 @@ export const CPT_FULLTIME_MONTHS_BEFORE_OPT_LOSS = 12;
 export const PART_TIME_WEEKLY_HOURS = 20;
 
 
-import { addDays } from 'date-fns';
+import { addDays, addMonths, differenceInCalendarDays } from 'date-fns';
+
+
+// ---- Types ----
+
+/**
+ * A period of employment. An absent `end` means currently employed.
+ * Dates are inclusive on both ends.
+ */
+export type EmploymentPeriod = {
+  start: Date;
+  end?: Date;
+};
 
 // ---- Functions ----
 
@@ -75,4 +88,54 @@ export function optFilingWindow(programEndDate: Date): {
     opens: addDays(programEndDate, -OPT_FILE_DAYS_BEFORE_END),
     closes: addDays(programEndDate, OPT_FILE_DAYS_AFTER_END),
   };
+}
+
+/**
+ * The authorized employment period for post-completion OPT.
+ * The requested start date must fall within the 60-day grace period,
+ * and the authorization runs 12 months from that start.
+ */
+export function optEmploymentPeriod(requestedStartDate: Date): {
+  starts: Date;
+  ends: Date;
+} {
+  return {
+    starts: requestedStartDate,
+    ends: addDays(addMonths(requestedStartDate, OPT_DURATION_MONTHS), -1),
+  };
+}
+
+/**
+ * Cumulative days of unemployment during a post-completion OPT period,
+ * counted from the authorization start through `asOf`.
+ *
+ * Overlapping jobs count once. An employment period with no end date
+ * is treated as ongoing through `asOf`.
+ */
+export function unemploymentDaysUsed(
+  optStart: Date,
+  employmentPeriods: EmploymentPeriod[],
+  asOf: Date
+): number {
+  if (asOf < optStart) return 0;
+
+  const totalDays = differenceInCalendarDays(asOf, optStart) + 1;
+
+  const employedDays = new Set<number>();
+
+  for (const period of employmentPeriods) {
+    const from = period.start < optStart ? optStart : period.start;
+    const to = !period.end || period.end > asOf ? asOf : period.end;
+
+    if (from > to) continue;
+
+    const offset = differenceInCalendarDays(from, optStart);
+    const length = differenceInCalendarDays(to, from) + 1;
+
+    for (let i = 0; i < length; i++) {
+      employedDays.add(offset + i);
+    }
+  }
+
+  return totalDays - employedDays.size;
 }

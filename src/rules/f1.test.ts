@@ -7,6 +7,8 @@ import {
     gracePeriodEnd,
     optEmploymentPeriod,
     optFilingWindow,
+    signatureExpiry,
+    signatureIsValid,
     stemExtensionPeriod,
     stemFilingWindow,
     unemploymentDaysRemaining,
@@ -238,5 +240,41 @@ describe('fullTimeCptEliminatesOpt', () => {
       { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31), fullTime: false },
     ];
     expect(fullTimeCptEliminatesOpt(cpt)).toBe(false);
+  });
+});
+
+describe('signatureIsValid', () => {
+  const signed = new Date(2027, 0, 15); // Jan 15, 2027
+
+  it('is valid the day it was signed', () => {
+    expect(signatureIsValid(signed, signed)).toBe(true);
+  });
+
+  it('is valid at 11 months when not on OPT', () => {
+    expect(signatureIsValid(signed, new Date(2027, 11, 15))).toBe(true);
+  });
+
+  it('expires after 12 months when not on OPT', () => {
+    expect(signatureIsValid(signed, new Date(2028, 0, 16))).toBe(false);
+  });
+
+  it('expires after 6 months when on OPT', () => {
+    expect(signatureIsValid(signed, new Date(2027, 6, 16), true)).toBe(false);
+  });
+
+  it('is still valid at 5 months when on OPT', () => {
+    expect(signatureIsValid(signed, new Date(2027, 5, 15), true)).toBe(true);
+  });
+});
+
+describe('signatureExpiry', () => {
+  const signed = new Date(2027, 0, 15);
+
+  it('is 12 months out when not on OPT', () => {
+    expect(signatureExpiry(signed)).toEqual(new Date(2028, 0, 15));
+  });
+
+  it('is 6 months out when on OPT', () => {
+    expect(signatureExpiry(signed, true)).toEqual(new Date(2027, 6, 15));
   });
 });

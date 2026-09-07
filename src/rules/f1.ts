@@ -227,3 +227,29 @@ export function fullTimeCptDaysUsed(cptPeriods: CptPeriod[]): number {
 export function fullTimeCptEliminatesOpt(cptPeriods: CptPeriod[]): boolean {
   return fullTimeCptDaysUsed(cptPeriods) >= 365;
 }
+
+/**
+ * Whether an I-20 travel signature is still valid for re-entry.
+ * Signatures are valid 12 months, or 6 months while on OPT.
+ */
+export function signatureIsValid(
+  signatureDate: Date,
+  asOf: Date,
+  onOpt: boolean = false
+): boolean {
+  const validMonths = onOpt
+    ? I20_SIGNATURE_VALID_MONTHS_ON_OPT
+    : I20_SIGNATURE_VALID_MONTHS;
+
+  return asOf <= addMonths(signatureDate, validMonths);
+}
+
+/**
+ * The date an I-20 travel signature expires.
+ */
+export function signatureExpiry(signatureDate: Date, onOpt: boolean = false): Date {
+  return addMonths(
+    signatureDate,
+    onOpt ? I20_SIGNATURE_VALID_MONTHS_ON_OPT : I20_SIGNATURE_VALID_MONTHS
+  );
+}

@@ -497,3 +497,20 @@ export function computeDeadlines(profile: Profile): Deadline[] {
 
   return out.sort((a, b) => a.date.getTime() - b.date.getTime());
 }
+
+/**
+ * Days from `asOf` until a deadline. Negative once it has passed.
+ */
+export function daysUntil(deadline: Date, asOf: Date): number {
+  return differenceInCalendarDays(deadline, asOf);
+}
+
+/**
+ * The next deadline on or after `asOf`, or null if all have passed.
+ */
+export function nextDeadline(
+  deadlines: Deadline[],
+  asOf: Date
+): Deadline | null {
+  return deadlines.find((d) => d.date >= asOf) ?? null;
+}

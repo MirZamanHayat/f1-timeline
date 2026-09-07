@@ -4,11 +4,13 @@ import {
     admitUntilDate,
     capGapPeriod,
     computeDeadlines,
+    daysUntil,
     departurePeriodEnd,
     fullTimeCptDaysUsed,
     fullTimeCptEliminatesOpt,
     GRACE_PERIOD_DAYS,
     gracePeriodEnd,
+    nextDeadline,
     optEmploymentPeriod,
     optFilingWindow,
     Profile,
@@ -463,5 +465,48 @@ describe('computeDeadlines', () => {
   it('gives every deadline a unique id', () => {
     const ids = computeDeadlines(base).map((d) => d.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe('daysUntil', () => {
+  it('counts forward to a future deadline', () => {
+    expect(daysUntil(new Date(2027, 4, 15), new Date(2027, 4, 1))).toBe(14);
+  });
+
+  it('is zero on the day itself', () => {
+    const d = new Date(2027, 4, 15);
+    expect(daysUntil(d, d)).toBe(0);
+  });
+
+  it('is negative once passed', () => {
+    expect(daysUntil(new Date(2027, 4, 1), new Date(2027, 4, 15))).toBe(-14);
+  });
+});
+
+describe('nextDeadline', () => {
+  const profile: Profile = {
+    admissionBasis: 'transition',
+    programStartDate: new Date(2026, 0, 20),
+    programEndDate: new Date(2027, 4, 15),
+    degreeIsStem: true,
+    employmentPeriods: [],
+    cptPeriods: [],
+  };
+
+  it('finds the earliest upcoming deadline', () => {
+    const deadlines = computeDeadlines(profile);
+    const next = nextDeadline(deadlines, new Date(2027, 0, 1));
+    expect(next?.id).toBe('opt-window-opens'); // Feb 14, 2027
+  });
+
+  it('skips deadlines already passed', () => {
+    const deadlines = computeDeadlines(profile);
+    const next = nextDeadline(deadlines, new Date(2027, 5, 1));
+    expect(next?.id).toBe('departure-period-end'); // Jul 14, 2027
+  });
+
+  it('returns null once everything has passed', () => {
+    const deadlines = computeDeadlines(profile);
+    expect(nextDeadline(deadlines, new Date(2030, 0, 1))).toBeNull();
   });
 });

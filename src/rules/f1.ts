@@ -139,3 +139,52 @@ export function unemploymentDaysUsed(
 
   return totalDays - employedDays.size;
 }
+
+/**
+ * Days of unemployment remaining before falling out of status.
+ * Returns 0 once the cap is reached or exceeded.
+ */
+export function unemploymentDaysRemaining(
+  optStart: Date,
+  employmentPeriods: EmploymentPeriod[],
+  asOf: Date,
+  hasStemExtension: boolean = false
+): number {
+  const cap = hasStemExtension
+    ? STEM_UNEMPLOYMENT_CAP_DAYS
+    : OPT_UNEMPLOYMENT_CAP_DAYS;
+
+  const used = unemploymentDaysUsed(optStart, employmentPeriods, asOf);
+
+  return Math.max(0, cap - used);
+}
+
+/**
+ * The window during which a STEM OPT extension may be filed.
+ * Opens 90 days before the current EAD expires; closes on the
+ * EAD expiry date itself. Filing after expiry is not permitted.
+ */
+export function stemFilingWindow(currentEadExpiry: Date): {
+  opens: Date;
+  closes: Date;
+} {
+  return {
+    opens: addDays(currentEadExpiry, -STEM_FILE_DAYS_BEFORE_EAD_EXPIRY),
+    closes: currentEadExpiry,
+  };
+}
+
+/**
+ * The authorized employment period for a STEM extension.
+ * Runs 24 months from the day after the current EAD expires.
+ */
+export function stemExtensionPeriod(currentEadExpiry: Date): {
+  starts: Date;
+  ends: Date;
+} {
+  const starts = addDays(currentEadExpiry, 1);
+  return {
+    starts,
+    ends: addDays(addMonths(starts, STEM_EXTENSION_MONTHS), -1),
+  };
+}

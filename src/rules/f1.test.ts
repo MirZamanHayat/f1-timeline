@@ -1,10 +1,13 @@
+import { addDays } from 'date-fns';
 import { describe, expect, it } from 'vitest';
-
 import {
     GRACE_PERIOD_DAYS,
     gracePeriodEnd,
     optEmploymentPeriod,
     optFilingWindow,
+    stemExtensionPeriod,
+    stemFilingWindow,
+    unemploymentDaysRemaining,
     unemploymentDaysUsed,
 } from './f1';
 
@@ -112,5 +115,63 @@ describe('unemploymentDaysUsed', () => {
 
   it('returns zero before OPT has started', () => {
     expect(unemploymentDaysUsed(optStart, [], new Date(2027, 5, 15))).toBe(0);
+  });
+});
+
+describe('unemploymentDaysRemaining', () => {
+  const optStart = new Date(2027, 6, 1); // July 1, 2027
+
+  it('starts at 90 days on standard OPT', () => {
+    expect(unemploymentDaysRemaining(optStart, [], new Date(2027, 6, 1))).toBe(89);
+  });
+
+  it('starts at 150 days with a STEM extension', () => {
+    expect(
+      unemploymentDaysRemaining(optStart, [], new Date(2027, 6, 1), true)
+    ).toBe(149);
+  });
+
+  it('does not decrement while employed', () => {
+    const jobs = [{ start: new Date(2027, 6, 1) }];
+    expect(
+      unemploymentDaysRemaining(optStart, jobs, new Date(2027, 11, 31))
+    ).toBe(90);
+  });
+
+  it('clamps to zero once the cap is exceeded', () => {
+    // 120 days unemployed against a 90-day cap
+    const asOf = new Date(2027, 9, 28);
+    expect(unemploymentDaysRemaining(optStart, [], asOf)).toBe(0);
+  });
+});
+
+describe('stemFilingWindow', () => {
+  const eadExpiry = new Date(2028, 5, 30); // June 30, 2028
+
+  it('opens 90 days before the EAD expires', () => {
+    expect(stemFilingWindow(eadExpiry).opens).toEqual(new Date(2028, 3, 1));
+  });
+
+  it('closes on the EAD expiry date', () => {
+    expect(stemFilingWindow(eadExpiry).closes).toEqual(eadExpiry);
+  });
+});
+
+describe('stemExtensionPeriod', () => {
+  const eadExpiry = new Date(2028, 5, 30); // June 30, 2028
+
+  it('starts the day after the current EAD expires', () => {
+    expect(stemExtensionPeriod(eadExpiry).starts).toEqual(new Date(2028, 6, 1));
+  });
+
+  it('runs 24 months inclusive', () => {
+    expect(stemExtensionPeriod(eadExpiry).ends).toEqual(new Date(2030, 5, 30));
+  });
+
+  it('leaves no gap after the standard OPT period', () => {
+    const optStart = new Date(2027, 6, 1); // July 1, 2027
+    const opt = optEmploymentPeriod(optStart);
+    const stem = stemExtensionPeriod(opt.ends);
+    expect(stem.starts).toEqual(addDays(opt.ends, 1));
   });
 });

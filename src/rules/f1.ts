@@ -67,7 +67,22 @@ export const PART_TIME_WEEKLY_HOURS = 20;
 
 
 import { addDays, addMonths, differenceInCalendarDays } from 'date-fns';
+// ---- H-1B cap-gap ----
 
+/**
+ * H-1B fiscal years begin October 1. Cap-subject petitions request
+ * an October 1 start date.
+ */
+export const H1B_START_MONTH = 9; // October, zero-indexed
+export const H1B_START_DAY = 1;
+
+/**
+ * Latest possible cap-gap end date, per the H-1B Modernization Final
+ * Rule effective Jan 17, 2025. Previously September 30 — most online
+ * guidance is still stale on this.
+ */
+export const CAP_GAP_LATEST_MONTH = 3; // April, zero-indexed
+export const CAP_GAP_LATEST_DAY = 1;
 
 // ---- Types ----
 
@@ -281,4 +296,25 @@ export function departurePeriodEnd(
   basis: AdmissionBasis
 ): Date {
   return addDays(programEndDate, DEPARTURE_PERIOD_DAYS[basis]);
+}
+
+
+export function capGapPeriod(
+  currentEadExpiry: Date,
+  h1bFiscalYear: number
+): { starts: Date; ends: Date } | null {
+  const h1bStart = new Date(h1bFiscalYear - 1, H1B_START_MONTH, H1B_START_DAY);
+
+  if (currentEadExpiry >= h1bStart) return null;
+
+  const latestEnd = new Date(
+    h1bFiscalYear,
+    CAP_GAP_LATEST_MONTH,
+    CAP_GAP_LATEST_DAY
+  );
+
+  return {
+    starts: addDays(currentEadExpiry, 1),
+    ends: latestEnd,
+  };
 }

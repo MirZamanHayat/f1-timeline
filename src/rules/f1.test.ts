@@ -1,6 +1,7 @@
 import { addDays } from 'date-fns';
 import { describe, expect, it } from 'vitest';
 import {
+    capGapPeriod,
     departurePeriodEnd,
     fullTimeCptDaysUsed,
     fullTimeCptEliminatesOpt,
@@ -299,5 +300,34 @@ describe('departurePeriodEnd', () => {
     expect(departurePeriodEnd(programEnd, 'transition')).toEqual(
       gracePeriodEnd(programEnd)
     );
+  });
+});
+
+describe('capGapPeriod', () => {
+  it('starts the day after the EAD expires', () => {
+    const ead = new Date(2026, 5, 30); // June 30, 2026
+    expect(capGapPeriod(ead, 2027)?.starts).toEqual(new Date(2026, 6, 1));
+  });
+
+  it('runs to April 1 of the requested fiscal year', () => {
+    const ead = new Date(2026, 5, 30);
+    expect(capGapPeriod(ead, 2027)?.ends).toEqual(new Date(2027, 3, 1));
+  });
+
+  it('returns null when the EAD outlasts the H-1B start date', () => {
+    const ead = new Date(2026, 11, 31); // Dec 31, 2026, after Oct 1
+    expect(capGapPeriod(ead, 2027)).toBeNull();
+  });
+
+  it('returns null when the EAD expires exactly on the H-1B start', () => {
+    const ead = new Date(2026, 9, 1); // Oct 1, 2026
+    expect(capGapPeriod(ead, 2027)).toBeNull();
+  });
+
+  it('uses the correct fiscal year offset', () => {
+    // FY2028 begins Oct 1, 2027 and cap-gap can run to Apr 1, 2028
+    const ead = new Date(2027, 4, 15);
+    const period = capGapPeriod(ead, 2028);
+    expect(period?.ends).toEqual(new Date(2028, 3, 1));
   });
 });

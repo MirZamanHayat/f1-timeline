@@ -79,6 +79,7 @@ export default function Onboarding({ onDone }: { onDone?: () => void }) {
   async function finish() {
     if (saving) return;
     setSaving(true);
+    console.log('[onboarding] finish called');
 
     try {
       const profile: Profile = {
@@ -91,6 +92,7 @@ export default function Onboarding({ onDone }: { onDone?: () => void }) {
       };
 
       await saveProfile(profile);
+      console.log('[onboarding] saved, calling onDone');
 
       if (onDone) {
         onDone();

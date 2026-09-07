@@ -2,7 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { Profile } from '@/rules/f1';
 
-const KEY = 'f1-timeline:profile:v1';
+const KEY = 'f1-timeline:profile:v2';
+
+type StoredEmployment = { start: string; end?: string };
+type StoredCpt = { start: string; end: string; fullTime: boolean };
 
 type StoredProfile = {
   admissionBasis: Profile['admissionBasis'];
@@ -11,6 +14,8 @@ type StoredProfile = {
   programEndDate: string;
   lastI20SignatureDate?: string;
   opt?: { startDate: string; endDate: string };
+  employmentPeriods: StoredEmployment[];
+  cptPeriods: StoredCpt[];
 };
 
 export async function saveProfile(profile: Profile): Promise<void> {
@@ -26,6 +31,15 @@ export async function saveProfile(profile: Profile): Promise<void> {
           endDate: profile.opt.endDate.toISOString(),
         }
       : undefined,
+    employmentPeriods: profile.employmentPeriods.map((e) => ({
+      start: e.start.toISOString(),
+      end: e.end?.toISOString(),
+    })),
+    cptPeriods: profile.cptPeriods.map((c) => ({
+      start: c.start.toISOString(),
+      end: c.end.toISOString(),
+      fullTime: c.fullTime,
+    })),
   };
 
   await AsyncStorage.setItem(KEY, JSON.stringify(stored));
@@ -52,8 +66,15 @@ export async function loadProfile(): Promise<Profile | null> {
             endDate: new Date(s.opt.endDate),
           }
         : undefined,
-      employmentPeriods: [],
-      cptPeriods: [],
+      employmentPeriods: (s.employmentPeriods ?? []).map((e) => ({
+        start: new Date(e.start),
+        end: e.end ? new Date(e.end) : undefined,
+      })),
+      cptPeriods: (s.cptPeriods ?? []).map((c) => ({
+        start: new Date(c.start),
+        end: new Date(c.end),
+        fullTime: c.fullTime,
+      })),
     };
   } catch {
     return null;

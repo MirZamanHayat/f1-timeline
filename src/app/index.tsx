@@ -126,10 +126,14 @@ export default function HomeScreen() {
     setLoading(true);
     loadProfile()
       .then((p) => {
+        console.log('[home] refresh got:', p ? 'profile' : 'null');
         setProfile(p);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        console.log('[home] refresh failed:', err);
+        setLoading(false);
+      });
   }, []);
 
   useFocusEffect(

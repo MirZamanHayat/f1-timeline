@@ -13,6 +13,27 @@ export type AdmissionBasis = 'transition' | 'fixed';
 /** Effective date of the fixed-period-of-admission final rule. */
 export const FIXED_ADMISSION_RULE_EFFECTIVE = new Date(2026, 8, 15);
 
+/** Maximum admission period under the fixed-period rule. */
+export const MAX_ADMISSION_YEARS = 4;
+
+/** Arrival period added before the program start date. */
+export const ARRIVAL_PERIOD_DAYS = 30;
+
+/**
+ * Hard ceiling for the D/S transition cohort: four years from the
+ * rule's effective date plus a 60-day departure period.
+ */
+export const TRANSITION_HARD_CEILING = new Date(2030, 10, 14); // Nov 14, 2030
+
+/**
+ * Deadline for current D/S students to timely file post-completion
+ * OPT or STEM OPT without needing a separate Extension of Stay.
+ */
+export const TRANSITION_OPT_FILING_DEADLINE = new Date(2027, 2, 18); // Mar 18, 2027
+
+/** Days an EOS applicant may continue certain employment while pending. */
+export const EOS_PENDING_EMPLOYMENT_DAYS = 240;
+
 /** Departure period after program end, by admission basis. */
 export const DEPARTURE_PERIOD_DAYS: Record<AdmissionBasis, number> = {
   transition: 60,
@@ -66,7 +87,7 @@ export const CPT_FULLTIME_MONTHS_BEFORE_OPT_LOSS = 12;
 export const PART_TIME_WEEKLY_HOURS = 20;
 
 
-import { addDays, addMonths, differenceInCalendarDays } from 'date-fns';
+import { addDays, addMonths, addYears, differenceInCalendarDays } from 'date-fns';
 // ---- H-1B cap-gap ----
 
 /**
@@ -317,4 +338,25 @@ export function capGapPeriod(
     starts: addDays(currentEadExpiry, 1),
     ends: latestEnd,
   };
+}
+
+
+export function admitUntilDate(
+  programStartDate: Date,
+  programEndDate: Date
+): Date {
+  const fourYearCap = addYears(programStartDate, MAX_ADMISSION_YEARS);
+  const effectiveEnd = programEndDate < fourYearCap ? programEndDate : fourYearCap;
+
+  return addDays(effectiveEnd, DEPARTURE_PERIOD_DAYS.fixed);
+}
+
+/**
+ * The status expiration date for a student in the D/S transition
+ * cohort: their program end date, capped at the Nov 14, 2030 ceiling.
+ */
+export function transitionStatusEnd(programEndDate: Date): Date {
+  return programEndDate < TRANSITION_HARD_CEILING
+    ? programEndDate
+    : TRANSITION_HARD_CEILING;
 }

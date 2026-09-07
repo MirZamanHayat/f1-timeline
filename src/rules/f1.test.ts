@@ -1,6 +1,7 @@
 import { addDays } from 'date-fns';
 import { describe, expect, it } from 'vitest';
 import {
+    admitUntilDate,
     capGapPeriod,
     departurePeriodEnd,
     fullTimeCptDaysUsed,
@@ -13,6 +14,7 @@ import {
     signatureIsValid,
     stemExtensionPeriod,
     stemFilingWindow,
+    transitionStatusEnd,
     unemploymentDaysRemaining,
     unemploymentDaysUsed,
 } from './f1';
@@ -329,5 +331,38 @@ describe('capGapPeriod', () => {
     const ead = new Date(2027, 4, 15);
     const period = capGapPeriod(ead, 2028);
     expect(period?.ends).toEqual(new Date(2028, 3, 1));
+  });
+});
+describe('admitUntilDate', () => {
+  it('uses the program end date plus 30 days for a short program', () => {
+    const start = new Date(2026, 8, 1); // Sep 1, 2026
+    const end = new Date(2028, 4, 15); // May 15, 2028
+    expect(admitUntilDate(start, end)).toEqual(new Date(2028, 5, 14));
+  });
+
+  it('caps at four years from program start', () => {
+    const start = new Date(2026, 8, 1); // Sep 1, 2026
+    const end = new Date(2032, 4, 15); // a 6-year program
+    // capped at Sep 1, 2030, plus 30 days
+    expect(admitUntilDate(start, end)).toEqual(new Date(2030, 9, 1));
+  });
+
+  it('gives 30 days, not 60', () => {
+    const start = new Date(2026, 8, 1);
+    const end = new Date(2028, 4, 15);
+    const aud = admitUntilDate(start, end);
+    expect(aud).not.toEqual(gracePeriodEnd(end));
+  });
+});
+
+describe('transitionStatusEnd', () => {
+  it('uses the program end date when it falls before the ceiling', () => {
+    const end = new Date(2028, 4, 15);
+    expect(transitionStatusEnd(end)).toEqual(end);
+  });
+
+  it('caps at the Nov 14 2030 ceiling', () => {
+    const end = new Date(2032, 4, 15);
+    expect(transitionStatusEnd(end)).toEqual(new Date(2030, 10, 14));
   });
 });

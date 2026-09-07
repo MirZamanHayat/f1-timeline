@@ -65,6 +65,13 @@ export type EmploymentPeriod = {
   end?: Date;
 };
 
+/** A period of CPT authorization. */
+export type CptPeriod = {
+  start: Date;
+  end: Date;
+  fullTime: boolean;
+};
+
 // ---- Functions ----
 
 /**
@@ -187,4 +194,36 @@ export function stemExtensionPeriod(currentEadExpiry: Date): {
     starts,
     ends: addDays(addMonths(starts, STEM_EXTENSION_MONTHS), -1),
   };
+}
+
+/**
+ * Total days of full-time CPT used. Part-time CPT is excluded —
+ * it does not count toward the 12-month threshold.
+ * Overlapping authorizations count once.
+ */
+export function fullTimeCptDaysUsed(cptPeriods: CptPeriod[]): number {
+  const days = new Set<string>();
+
+  for (const period of cptPeriods) {
+    if (!period.fullTime) continue;
+
+    const length = differenceInCalendarDays(period.end, period.start) + 1;
+
+    for (let i = 0; i < length; i++) {
+      days.add(addDays(period.start, i).toISOString().slice(0, 10));
+    }
+  }
+
+  return days.size;
+}
+
+/**
+ * Whether 12 or more months of full-time CPT have been used, which
+ * eliminates post-completion OPT eligibility. Part-time CPT never
+ * affects OPT eligibility regardless of duration.
+ *
+ * Informational only. Eligibility is determined by your DSO and USCIS.
+ */
+export function fullTimeCptEliminatesOpt(cptPeriods: CptPeriod[]): boolean {
+  return fullTimeCptDaysUsed(cptPeriods) >= 365;
 }

@@ -1,6 +1,8 @@
 import { addDays } from 'date-fns';
 import { describe, expect, it } from 'vitest';
 import {
+    fullTimeCptDaysUsed,
+    fullTimeCptEliminatesOpt,
     GRACE_PERIOD_DAYS,
     gracePeriodEnd,
     optEmploymentPeriod,
@@ -173,5 +175,68 @@ describe('stemExtensionPeriod', () => {
     const opt = optEmploymentPeriod(optStart);
     const stem = stemExtensionPeriod(opt.ends);
     expect(stem.starts).toEqual(addDays(opt.ends, 1));
+  });
+});
+
+describe('fullTimeCptDaysUsed', () => {
+  it('returns zero with no CPT', () => {
+    expect(fullTimeCptDaysUsed([])).toBe(0);
+  });
+
+  it('counts a full-time period inclusively', () => {
+    const cpt = [
+      { start: new Date(2026, 5, 1), end: new Date(2026, 7, 31), fullTime: true },
+    ];
+    expect(fullTimeCptDaysUsed(cpt)).toBe(92); // Jun 30 + Jul 31 + Aug 31
+  });
+
+  it('ignores part-time CPT entirely', () => {
+    const cpt = [
+      { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31), fullTime: false },
+    ];
+    expect(fullTimeCptDaysUsed(cpt)).toBe(0);
+  });
+
+  it('sums multiple separate full-time periods', () => {
+    const cpt = [
+      { start: new Date(2026, 5, 1), end: new Date(2026, 5, 30), fullTime: true },
+      { start: new Date(2027, 5, 1), end: new Date(2027, 5, 30), fullTime: true },
+    ];
+    expect(fullTimeCptDaysUsed(cpt)).toBe(60);
+  });
+
+  it('does not double count overlapping periods', () => {
+    const cpt = [
+      { start: new Date(2026, 5, 1), end: new Date(2026, 5, 30), fullTime: true },
+      { start: new Date(2026, 5, 15), end: new Date(2026, 6, 14), fullTime: true },
+    ];
+    expect(fullTimeCptDaysUsed(cpt)).toBe(44); // Jun 1 – Jul 14
+  });
+});
+
+describe('fullTimeCptEliminatesOpt', () => {
+  it('is false with no CPT', () => {
+    expect(fullTimeCptEliminatesOpt([])).toBe(false);
+  });
+
+  it('is false just under 12 months', () => {
+    const cpt = [
+      { start: new Date(2026, 0, 1), end: new Date(2026, 11, 30), fullTime: true },
+    ];
+    expect(fullTimeCptEliminatesOpt(cpt)).toBe(false); // 364 days
+  });
+
+  it('is true at exactly 12 months', () => {
+    const cpt = [
+      { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31), fullTime: true },
+    ];
+    expect(fullTimeCptEliminatesOpt(cpt)).toBe(true); // 365 days
+  });
+
+  it('is false for a year of part-time CPT', () => {
+    const cpt = [
+      { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31), fullTime: false },
+    ];
+    expect(fullTimeCptEliminatesOpt(cpt)).toBe(false);
   });
 });

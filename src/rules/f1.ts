@@ -123,6 +123,33 @@ export type CptPeriod = {
   fullTime: boolean;
 };
 
+/** Everything the engine needs to build a timeline. */
+export type Profile = {
+  admissionBasis: AdmissionBasis;
+  programStartDate: Date;
+  programEndDate: Date;
+  degreeIsStem: boolean;
+  lastI20SignatureDate?: Date;
+  opt?: {
+    startDate: Date;
+    endDate: Date;
+  };
+  employmentPeriods: EmploymentPeriod[];
+  cptPeriods: CptPeriod[];
+};
+
+export type Severity = 'info' | 'act' | 'critical';
+
+/** One dated milestone on the timeline. */
+export type Deadline = {
+  id: string;
+  label: string;
+  date: Date;
+  severity: Severity;
+  detail: string;
+  sourceUrl: string;
+};
+
 // ---- Functions ----
 
 /**
@@ -359,4 +386,59 @@ export function transitionStatusEnd(programEndDate: Date): Date {
   return programEndDate < TRANSITION_HARD_CEILING
     ? programEndDate
     : TRANSITION_HARD_CEILING;
+}
+
+const SOURCE_DS = 'https://studyinthestates.dhs.gov/final-rule-establishing-a-fixed-time-period-of-admission-and-an-extension-of-stay-procedure-faq';
+const SOURCE_OPT = 'https://studyinthestates.dhs.gov/students/training-opportunities-in-the-united-states/optional-practical-training';
+const SOURCE_CAPGAP = 'https://studyinthestates.dhs.gov/students/complete/h-1b-status-and-the-cap-gap-extension';
+
+/**
+ * Every dated milestone for a profile, sorted earliest first.
+ * Pure — same profile always yields the same timeline.
+ */
+export function computeDeadlines(profile: Profile): Deadline[] {
+  const out: Deadline[] = [];
+
+  out.push({
+    id: 'program-end',
+    label: 'Program end date',
+    date: profile.programEndDate,
+    severity: 'critical',
+    detail: 'The completion date listed on your Form I-20.',
+    sourceUrl: SOURCE_DS,
+  });
+
+  out.push({
+    id: 'departure-period-end',
+    label: 'Departure period ends',
+    date: departurePeriodEnd(profile.programEndDate, profile.admissionBasis),
+    severity: 'critical',
+    detail:
+      profile.admissionBasis === 'transition'
+        ? '60-day departure period for the D/S transition cohort.'
+        : '30-day departure period under fixed-period admission.',
+    sourceUrl: SOURCE_DS,
+  });
+
+  const optWindow = optFilingWindow(profile.programEndDate);
+
+  out.push({
+    id: 'opt-window-opens',
+    label: 'OPT filing window opens',
+    date: optWindow.opens,
+    severity: 'act',
+    detail: 'Earliest date USCIS will accept your post-completion OPT application.',
+    sourceUrl: SOURCE_OPT,
+  });
+
+  out.push({
+    id: 'opt-window-closes',
+    label: 'OPT filing window closes',
+    date: optWindow.closes,
+    severity: 'critical',
+    detail: 'Applications filed after this date are denied.',
+    sourceUrl: SOURCE_OPT,
+  });
+
+  return out.sort((a, b) => a.date.getTime() - b.date.getTime());
 }

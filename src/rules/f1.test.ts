@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
     admitUntilDate,
     capGapPeriod,
+    computeDeadlines,
     departurePeriodEnd,
     fullTimeCptDaysUsed,
     fullTimeCptEliminatesOpt,
@@ -10,6 +11,7 @@ import {
     gracePeriodEnd,
     optEmploymentPeriod,
     optFilingWindow,
+    Profile,
     signatureExpiry,
     signatureIsValid,
     stemExtensionPeriod,
@@ -364,5 +366,56 @@ describe('transitionStatusEnd', () => {
   it('caps at the Nov 14 2030 ceiling', () => {
     const end = new Date(2032, 4, 15);
     expect(transitionStatusEnd(end)).toEqual(new Date(2030, 10, 14));
+  });
+});
+
+describe('computeDeadlines', () => {
+  const base: Profile = {
+    admissionBasis: 'transition',
+    programStartDate: new Date(2026, 0, 20),
+    programEndDate: new Date(2027, 4, 15), // May 15, 2027
+    degreeIsStem: true,
+    employmentPeriods: [],
+    cptPeriods: [],
+  };
+
+  it('returns deadlines sorted earliest first', () => {
+    const deadlines = computeDeadlines(base);
+    for (let i = 1; i < deadlines.length; i++) {
+      expect(deadlines[i].date.getTime()).toBeGreaterThanOrEqual(
+        deadlines[i - 1].date.getTime()
+      );
+    }
+  });
+
+  it('includes the program end date', () => {
+    const found = computeDeadlines(base).find((d) => d.id === 'program-end');
+    expect(found?.date).toEqual(new Date(2027, 4, 15));
+  });
+
+  it('gives the transition cohort a 60-day departure period', () => {
+    const found = computeDeadlines(base).find(
+      (d) => d.id === 'departure-period-end'
+    );
+    expect(found?.date).toEqual(new Date(2027, 6, 14));
+  });
+
+  it('gives fixed-basis students a 30-day departure period', () => {
+    const fixed: Profile = { ...base, admissionBasis: 'fixed' };
+    const found = computeDeadlines(fixed).find(
+      (d) => d.id === 'departure-period-end'
+    );
+    expect(found?.date).toEqual(new Date(2027, 5, 14));
+  });
+
+  it('gives every deadline a source url', () => {
+    for (const d of computeDeadlines(base)) {
+      expect(d.sourceUrl).toMatch(/^https:\/\//);
+    }
+  });
+
+  it('gives every deadline a unique id', () => {
+    const ids = computeDeadlines(base).map((d) => d.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

@@ -1,13 +1,28 @@
+/**
+ * Admission basis. As of the DHS final rule effective Sept 15, 2026,
+ * F-1 students are admitted for a fixed period (Admit Until Date on
+ * the I-94) rather than duration of status.
+ *
+ * 'transition'  — admitted under D/S and present in the US on
+ *                 Sept 15, 2026. Retains a 60-day departure period.
+ * 'fixed'       — admitted or readmitted on or after Sept 15, 2026.
+ *                 30-day departure period.
+ */
+export type AdmissionBasis = 'transition' | 'fixed';
+
+/** Effective date of the fixed-period-of-admission final rule. */
+export const FIXED_ADMISSION_RULE_EFFECTIVE = new Date(2026, 8, 15);
+
+/** Departure period after program end, by admission basis. */
+export const DEPARTURE_PERIOD_DAYS: Record<AdmissionBasis, number> = {
+  transition: 60,
+  fixed: 30,
+};
 
 /**
- * F-1 rules engine.
- * Pure date math. No React, no UI, no imports from the app.
- * Every constant cites its source. Verify before each release.
+ * Deprecated. Kept so existing callers still compile.
+ * Use DEPARTURE_PERIOD_DAYS keyed on admission basis instead.
  */
-
-// ---- Status & grace periods ----
-
-/** Days you may remain in the US after program end or OPT end. */
 export const GRACE_PERIOD_DAYS = 60;
 
 /** Days to remain after early withdrawal with DSO approval. */
@@ -252,4 +267,18 @@ export function signatureExpiry(signatureDate: Date, onOpt: boolean = false): Da
     signatureDate,
     onOpt ? I20_SIGNATURE_VALID_MONTHS_ON_OPT : I20_SIGNATURE_VALID_MONTHS
   );
+}
+
+/**
+ * Last day you may remain in the US after your program end date.
+ * 60 days for students in the D/S transition cohort, 30 days for
+ * anyone admitted or readmitted under the fixed-period rule.
+ *
+ * Informational only. Confirm your Admit Until Date on your I-94.
+ */
+export function departurePeriodEnd(
+  programEndDate: Date,
+  basis: AdmissionBasis
+): Date {
+  return addDays(programEndDate, DEPARTURE_PERIOD_DAYS[basis]);
 }

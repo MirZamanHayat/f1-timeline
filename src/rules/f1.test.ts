@@ -1,6 +1,7 @@
 import { addDays } from 'date-fns';
 import { describe, expect, it } from 'vitest';
 import {
+    departurePeriodEnd,
     fullTimeCptDaysUsed,
     fullTimeCptEliminatesOpt,
     GRACE_PERIOD_DAYS,
@@ -276,5 +277,27 @@ describe('signatureExpiry', () => {
 
   it('is 6 months out when on OPT', () => {
     expect(signatureExpiry(signed, true)).toEqual(new Date(2027, 6, 15));
+  });
+});
+
+describe('departurePeriodEnd', () => {
+  const programEnd = new Date(2027, 4, 15); // May 15, 2027
+
+  it('gives 60 days to the D/S transition cohort', () => {
+    expect(departurePeriodEnd(programEnd, 'transition')).toEqual(
+      new Date(2027, 6, 14)
+    );
+  });
+
+  it('gives 30 days under fixed-period admission', () => {
+    expect(departurePeriodEnd(programEnd, 'fixed')).toEqual(
+      new Date(2027, 5, 14)
+    );
+  });
+
+  it('matches the legacy grace period for transition students', () => {
+    expect(departurePeriodEnd(programEnd, 'transition')).toEqual(
+      gracePeriodEnd(programEnd)
+    );
   });
 });

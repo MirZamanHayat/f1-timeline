@@ -439,6 +439,61 @@ export function computeDeadlines(profile: Profile): Deadline[] {
     detail: 'Applications filed after this date are denied.',
     sourceUrl: SOURCE_OPT,
   });
+    if (profile.lastI20SignatureDate) {
+    const onOpt = Boolean(profile.opt);
+    out.push({
+      id: 'signature-expiry',
+      label: 'Travel signature expires',
+      date: signatureExpiry(profile.lastI20SignatureDate, onOpt),
+      severity: 'act',
+      detail: onOpt
+        ? 'I-20 travel signatures are valid 6 months while on OPT.'
+        : 'I-20 travel signatures are valid 12 months.',
+      sourceUrl: SOURCE_DS,
+    });
+  }
+
+  if (profile.opt) {
+    out.push({
+      id: 'opt-starts',
+      label: 'OPT authorization begins',
+      date: profile.opt.startDate,
+      severity: 'info',
+      detail: 'You may begin working on the start date printed on your EAD.',
+      sourceUrl: SOURCE_OPT,
+    });
+
+    out.push({
+      id: 'opt-ends',
+      label: 'OPT authorization ends',
+      date: profile.opt.endDate,
+      severity: 'critical',
+      detail: 'Work authorization ends on the expiration date of your EAD.',
+      sourceUrl: SOURCE_OPT,
+    });
+
+    if (profile.degreeIsStem) {
+      const stem = stemFilingWindow(profile.opt.endDate);
+
+      out.push({
+        id: 'stem-window-opens',
+        label: 'STEM extension filing window opens',
+        date: stem.opens,
+        severity: 'act',
+        detail: 'You may file up to 90 days before your current EAD expires.',
+        sourceUrl: SOURCE_OPT,
+      });
+
+      out.push({
+        id: 'stem-window-closes',
+        label: 'STEM extension filing deadline',
+        date: stem.closes,
+        severity: 'critical',
+        detail: 'You must file before your current EAD expires.',
+        sourceUrl: SOURCE_OPT,
+      });
+    }
+  }
 
   return out.sort((a, b) => a.date.getTime() - b.date.getTime());
 }

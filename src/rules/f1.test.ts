@@ -378,7 +378,53 @@ describe('computeDeadlines', () => {
     employmentPeriods: [],
     cptPeriods: [],
   };
+    const withOpt: Profile = {
+    ...base,
+    lastI20SignatureDate: new Date(2027, 0, 15),
+    opt: {
+      startDate: new Date(2027, 6, 1), // Jul 1, 2027
+      endDate: new Date(2028, 5, 30), // Jun 30, 2028
+    },
+  };
 
+  it('adds no OPT deadlines when the profile has no OPT', () => {
+    const ids = computeDeadlines(base).map((d) => d.id);
+    expect(ids).not.toContain('opt-starts');
+    expect(ids).not.toContain('stem-window-opens');
+  });
+
+  it('adds OPT deadlines when the profile has OPT', () => {
+    const ids = computeDeadlines(withOpt).map((d) => d.id);
+    expect(ids).toContain('opt-starts');
+    expect(ids).toContain('opt-ends');
+  });
+
+  it('adds STEM deadlines only for STEM degrees', () => {
+    const nonStem: Profile = { ...withOpt, degreeIsStem: false };
+    const ids = computeDeadlines(nonStem).map((d) => d.id);
+    expect(ids).not.toContain('stem-window-opens');
+  });
+
+  it('uses the 6-month signature rule once on OPT', () => {
+    const found = computeDeadlines(withOpt).find(
+      (d) => d.id === 'signature-expiry'
+    );
+    expect(found?.date).toEqual(new Date(2027, 6, 15));
+  });
+
+  it('stays sorted with the full deadline set', () => {
+    const deadlines = computeDeadlines(withOpt);
+    for (let i = 1; i < deadlines.length; i++) {
+      expect(deadlines[i].date.getTime()).toBeGreaterThanOrEqual(
+        deadlines[i - 1].date.getTime()
+      );
+    }
+  });
+
+  it('keeps ids unique with the full deadline set', () => {
+    const ids = computeDeadlines(withOpt).map((d) => d.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
   it('returns deadlines sorted earliest first', () => {
     const deadlines = computeDeadlines(base);
     for (let i = 1; i < deadlines.length; i++) {

@@ -398,6 +398,7 @@ const SOURCE_CAPGAP = 'https://studyinthestates.dhs.gov/students/complete/h-1b-s
  */
 export function computeDeadlines(profile: Profile): Deadline[] {
   const out: Deadline[] = [];
+  const onOpt = Boolean(profile.opt);
 
   out.push({
     id: 'program-end',
@@ -408,39 +409,41 @@ export function computeDeadlines(profile: Profile): Deadline[] {
     sourceUrl: SOURCE_DS,
   });
 
-  out.push({
-    id: 'departure-period-end',
-    label: 'Departure period ends',
-    date: departurePeriodEnd(profile.programEndDate, profile.admissionBasis),
-    severity: 'critical',
-    detail:
-      profile.admissionBasis === 'transition'
-        ? '60-day departure period for the D/S transition cohort.'
-        : '30-day departure period under fixed-period admission.',
-    sourceUrl: SOURCE_DS,
-  });
+  if (!onOpt) {
+    out.push({
+      id: 'departure-period-end',
+      label: 'Departure period ends',
+      date: departurePeriodEnd(profile.programEndDate, profile.admissionBasis),
+      severity: 'critical',
+      detail:
+        profile.admissionBasis === 'transition'
+          ? '60-day departure period for the D/S transition cohort.'
+          : '30-day departure period under fixed-period admission.',
+      sourceUrl: SOURCE_DS,
+    });
 
-  const optWindow = optFilingWindow(profile.programEndDate);
+    const optWindow = optFilingWindow(profile.programEndDate);
 
-  out.push({
-    id: 'opt-window-opens',
-    label: 'OPT filing window opens',
-    date: optWindow.opens,
-    severity: 'act',
-    detail: 'Earliest date USCIS will accept your post-completion OPT application.',
-    sourceUrl: SOURCE_OPT,
-  });
+    out.push({
+      id: 'opt-window-opens',
+      label: 'OPT filing window opens',
+      date: optWindow.opens,
+      severity: 'act',
+      detail: 'Earliest date USCIS will accept your post-completion OPT application.',
+      sourceUrl: SOURCE_OPT,
+    });
 
-  out.push({
-    id: 'opt-window-closes',
-    label: 'OPT filing window closes',
-    date: optWindow.closes,
-    severity: 'critical',
-    detail: 'Applications filed after this date are denied.',
-    sourceUrl: SOURCE_OPT,
-  });
-    if (profile.lastI20SignatureDate) {
-    const onOpt = Boolean(profile.opt);
+    out.push({
+      id: 'opt-window-closes',
+      label: 'OPT filing window closes',
+      date: optWindow.closes,
+      severity: 'critical',
+      detail: 'Applications filed after this date are denied.',
+      sourceUrl: SOURCE_OPT,
+    });
+  }
+
+  if (profile.lastI20SignatureDate) {
     out.push({
       id: 'signature-expiry',
       label: 'Travel signature expires',
@@ -470,6 +473,16 @@ export function computeDeadlines(profile: Profile): Deadline[] {
       severity: 'critical',
       detail: 'Work authorization ends on the expiration date of your EAD.',
       sourceUrl: SOURCE_OPT,
+    });
+
+    out.push({
+      id: 'opt-departure-period-end',
+      label: 'Departure period ends',
+      date: departurePeriodEnd(profile.opt.endDate, profile.admissionBasis),
+      severity: 'critical',
+      detail:
+        'Your departure period runs from the end of your OPT authorization, not your program end date.',
+      sourceUrl: SOURCE_DS,
     });
 
     if (profile.degreeIsStem) {

@@ -177,6 +177,7 @@ export default function ProfileScreen() {
           Add these as they become real. Each one adds deadlines to your timeline.
         </Text>
 
+        {/* ---- I-20 signature ---- */}
         <Text style={s.section}>I-20 travel signature</Text>
         <Text style={s.sectionHelp}>
           Valid 12 months, or 6 months once you are on OPT.
@@ -202,6 +203,7 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* ---- OPT ---- */}
         <Text style={s.section}>Post-completion OPT</Text>
         <View style={s.card}>
           {p.opt ? (
@@ -239,6 +241,81 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* ---- H-1B ---- */}
+        <Text style={s.section}>H-1B petition</Text>
+        <Text style={s.sectionHelp}>
+          If your employer filed a cap-subject petition with a change of status,
+          cap-gap can extend your work authorization to April 1.
+        </Text>
+        <View style={s.card}>
+          {p.h1b ? (
+            <>
+              <View style={s.field}>
+                <Text style={s.fieldLabel}>Fiscal year</Text>
+                <View style={s.stepper}>
+                  <Pressable
+                    style={s.stepBtn}
+                    onPress={() =>
+                      update({
+                        ...p,
+                        h1b: { ...p.h1b!, fiscalYear: p.h1b!.fiscalYear - 1 },
+                      })
+                    }
+                  >
+                    <Text style={s.stepText}>−</Text>
+                  </Pressable>
+                  <Text style={s.stepValue}>FY{p.h1b.fiscalYear}</Text>
+                  <Pressable
+                    style={s.stepBtn}
+                    onPress={() =>
+                      update({
+                        ...p,
+                        h1b: { ...p.h1b!, fiscalYear: p.h1b!.fiscalYear + 1 },
+                      })
+                    }
+                  >
+                    <Text style={s.stepText}>+</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={s.divider} />
+
+              <View style={s.field}>
+                <Text style={s.fieldLabel}>Selected and filed</Text>
+                <Switch
+                  value={p.h1b.filed}
+                  onValueChange={(v) => update({ ...p, h1b: { ...p.h1b!, filed: v } })}
+                />
+              </View>
+
+              <View style={s.noteBox}>
+                <Text style={s.noteText}>
+                  FY{p.h1b.fiscalYear} employment begins Oct 1, {p.h1b.fiscalYear - 1}.
+                  Cap-gap can run to Apr 1, {p.h1b.fiscalYear}.
+                </Text>
+              </View>
+
+              <Pressable style={s.remove} onPress={() => update({ ...p, h1b: undefined })}>
+                <Text style={s.removeText}>Remove H-1B</Text>
+              </Pressable>
+            </>
+          ) : (
+            <Pressable
+              style={s.add}
+              onPress={() =>
+                update({
+                  ...p,
+                  h1b: { fiscalYear: new Date().getFullYear() + 1, filed: false },
+                })
+              }
+            >
+              <Text style={s.addText}>+ Add H-1B petition</Text>
+            </Pressable>
+          )}
+        </View>
+
+        {/* ---- Employment ---- */}
         <Text style={s.section}>Employment</Text>
         <Text style={s.sectionHelp}>
           Used to count unemployment days against your 90-day limit.
@@ -299,6 +376,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
+        {/* ---- CPT ---- */}
         <Text style={s.section}>CPT</Text>
         <Text style={s.sectionHelp}>
           12+ months of full-time CPT eliminates OPT eligibility. Part-time never does.
@@ -405,6 +483,20 @@ const s = StyleSheet.create({
   fieldValueMuted: { fontSize: 14, color: C.ink3 },
   linkText: { fontSize: 14, fontWeight: '500', color: C.accent },
   divider: { height: 1, backgroundColor: C.line },
+
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  stepBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: C.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepText: { fontSize: 19, fontWeight: '600', color: C.accent, lineHeight: 22 },
+  stepValue: { fontSize: 16, fontWeight: '600', color: C.ink, minWidth: 62, textAlign: 'center' },
+  noteBox: { paddingHorizontal: 16, paddingBottom: 14 },
+  noteText: { fontSize: 13, color: C.ink3, lineHeight: 19 },
 
   add: { paddingVertical: 15, paddingHorizontal: 16 },
   addText: { fontSize: 15, fontWeight: '600', color: C.accent },

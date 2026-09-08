@@ -14,6 +14,7 @@ type StoredProfile = {
   programEndDate: string;
   lastI20SignatureDate?: string;
   opt?: { startDate: string; endDate: string };
+  h1b?: { fiscalYear: number; filed: boolean };
   employmentPeriods: StoredEmployment[];
   cptPeriods: StoredCpt[];
 };
@@ -31,6 +32,7 @@ export async function saveProfile(profile: Profile): Promise<void> {
           endDate: profile.opt.endDate.toISOString(),
         }
       : undefined,
+    h1b: profile.h1b,
     employmentPeriods: profile.employmentPeriods.map((e) => ({
       start: e.start.toISOString(),
       end: e.end?.toISOString(),
@@ -66,6 +68,7 @@ export async function loadProfile(): Promise<Profile | null> {
             endDate: new Date(s.opt.endDate),
           }
         : undefined,
+      h1b: s.h1b,
       employmentPeriods: (s.employmentPeriods ?? []).map((e) => ({
         start: new Date(e.start),
         end: e.end ? new Date(e.end) : undefined,

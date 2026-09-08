@@ -134,6 +134,10 @@ export type Profile = {
     startDate: Date;
     endDate: Date;
   };
+  h1b?: {
+    fiscalYear: number;
+    filed: boolean;
+  };
   employmentPeriods: EmploymentPeriod[];
   cptPeriods: CptPeriod[];
 };
@@ -408,7 +412,27 @@ export function computeDeadlines(profile: Profile): Deadline[] {
     detail: 'The completion date listed on your Form I-20.',
     sourceUrl: SOURCE_DS,
   });
-
+    if (profile.admissionBasis === 'transition') {
+    out.push({
+      id: 'transition-opt-filing-deadline',
+      label: 'File OPT without an Extension of Stay',
+      date: TRANSITION_OPT_FILING_DEADLINE,
+      severity: 'act',
+      detail:
+        'D/S students present in the US on Sept 15, 2026 who file for OPT or STEM OPT by this date do not need a separate Form I-539 Extension of Stay.',
+      sourceUrl: SOURCE_DS,
+    });
+  } else {
+    out.push({
+      id: 'admit-until-date',
+      label: 'Admit Until Date',
+      date: admitUntilDate(profile.programStartDate, profile.programEndDate),
+      severity: 'critical',
+      detail:
+        'Your status expires on the Admit Until Date printed on your I-94, independent of your program end date.',
+      sourceUrl: SOURCE_DS,
+    });
+  }
   if (!onOpt) {
     out.push({
       id: 'departure-period-end',
@@ -505,6 +529,20 @@ export function computeDeadlines(profile: Profile): Deadline[] {
         detail: 'You must file before your current EAD expires.',
         sourceUrl: SOURCE_OPT,
       });
+    }
+    if (profile.h1b?.filed) {
+      const gap = capGapPeriod(profile.opt.endDate, profile.h1b.fiscalYear);
+      if (gap) {
+        out.push({
+          id: 'cap-gap-ends',
+          label: 'Cap-gap extension ends',
+          date: gap.ends,
+          severity: 'critical',
+          detail:
+            'Cap-gap runs to April 1 of the requested fiscal year, or your H-1B start date, whichever comes first. This replaced the old September 30 cutoff in 2025.',
+          sourceUrl: SOURCE_CAPGAP,
+        });
+      }
     }
   }
 

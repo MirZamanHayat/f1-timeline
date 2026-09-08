@@ -31,6 +31,18 @@ export default function AppTabs() {
         }}
       />
       <Tabs.Screen
+        name="unemployment"
+        options={{
+          title: 'OPT',
+          tabBarIcon: ({ color }) => (
+            <Image
+              source={require('@/assets/images/tabIcons/explore.png')}
+              style={{ width: 24, height: 24, tintColor: color }}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
